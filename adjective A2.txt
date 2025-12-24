@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adjectives Quiz (A2–B1) + Export CSV</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f3f5f9;margin:0;padding:16px;}
+.wrap{max-width:980px;margin:auto;background:#fff;border-radius:12px;padding:20px;}
+h1{font-size:20px;margin:0 0 6px;}
+.sub{font-size:14px;color:#555;margin-bottom:14px;line-height:1.6;}
+.name-box{margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+input[type="text"]{padding:8px 10px;font-size:14px;border:2px solid #cfd6e4;border-radius:8px;width:260px;}
+.q{border-top:1px solid #eee;padding:14px 4px;}
+.q:first-of-type{border-top:none;}
+.qtitle{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;}
+.sentence{font-size:16px;margin-bottom:8px;}
+.options{display:flex;flex-wrap:wrap;gap:10px 14px;}
+.pill{border:2px solid #cfd6e4;border-radius:999px;padding:6px 12px;cursor:pointer;}
+.pill.correct{border-color:#22c55e;background:#ecfff4;}
+.pill.wrong{border-color:#ef4444;background:#fff1f0;}
+.hint{font-size:13px;margin-top:6px;color:#6b7280;}
+.hint.ok{color:#16a34a;font-weight:bold;}
+.hint.bad{color:#b91c1c;font-weight:bold;}
+details{margin-top:6px;}
+details summary{cursor:pointer;font-weight:bold;}
+.explain{font-size:13px;margin-top:6px;line-height:1.5;}
+button{
+  margin-top:10px;padding:9px 16px;font-size:14px;border:none;border-radius:10px;
+  background:#2563eb;color:#fff;cursor:pointer;
+}
+button.secondary{background:#64748b;}
+button.success{background:#16a34a;}
+button.warn{background:#f97316;}
+button:disabled{opacity:.6;cursor:not-allowed;}
+.result{margin-top:14px;font-weight:bold;font-size:16px;}
+.blank{font-weight:bold;text-decoration:underline;}
+.exportBox{margin-top:10px;background:#eef1f7;padding:12px;border-radius:10px;display:none;}
+textarea{width:100%;min-height:80px;padding:10px;border-radius:8px;border:2px solid #cfd6e4;font-size:13px;}
+.small{font-size:12px;color:#6b7280;margin-top:6px;}
+.toast{margin-top:10px;font-size:13px;font-weight:700;color:#16a34a;display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Adjectives Grammar Quiz（形容词｜20题 A2–B1）</h1>
+  <p class="sub">
+    1) 填名字 2) 作答 3) Check All 计算分数（错题自动展开讲解）<br>
+    4) 可一键复制成绩，或下载 CSV（姓名, 分数, 日期）。
+  </p>
+
+  <div class="name-box">
+    👤 Student Name：
+    <input type="text" id="studentName" placeholder="Enter your name">
+    <button class="secondary" onclick="resetAll()">Reset</button>
+  </div>
+
+  <div id="quiz"></div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+    <button onclick="checkAll()">Check All</button>
+    <button class="success" onclick="copyScore()" id="copyBtn" disabled>Copy Result</button>
+    <button class="warn" onclick="downloadCSV()" id="csvBtn" disabled>Download CSV</button>
+  </div>
+
+  <div id="result" class="result"></div>
+
+  <div id="exportBox" class="exportBox">
+    <b>Export Text (copy & paste):</b>
+    <textarea id="exportText" readonly></textarea>
+    <div class="small">
+      CSV 下载内容：<code>name,score,date</code>（一行记录）。<br>
+      如果你想“累计多次成绩”到同一个 CSV，我也可以帮你加“追加记录”功能。
+    </div>
+  </div>
+
+  <div id="toast" class="toast">✅ Done!</div>
+</div>
+
+<script>
+const questions = [
+  {s:"She is a ____ student. She always studies hard.",o:["lazy","hard-working","angry","noisy"],a:"hard-working",e:"always studies hard → 表示勤奋，用 hard-working。"},
+  {s:"This bag is very ____; I can carry it easily.",o:["heavy","light","wet","dirty"],a:"light",e:"carry it easily → 包不重，用 light。"},
+  {s:"The soup is too ____; please add some water.",o:["salty","sweet","cold","dry"],a:"salty",e:"add water → 汤太咸，用 salty。"},
+  {s:"My room is ____ than yours.",o:["clean","cleaner","cleanest","more clean"],a:"cleaner",e:"than 出现 → 用比较级 cleaner。"},
+  {s:"This is the ____ movie I have ever seen.",o:["funny","funnier","funniest","more funny"],a:"funniest",e:"the + ever → 最高级 funniest。"},
+  {s:"He looks ____ because he didn’t sleep well.",o:["tired","excited","brave","friendly"],a:"tired",e:"没睡好 → 看起来疲惫 tired。"},
+  {s:"The instructions are ____; everyone understands them.",o:["clear","dangerous","strange","busy"],a:"clear",e:"everyone understands → 清楚 clear。"},
+  {s:"It was a ____ mistake, but we can fix it.",o:["small","huge","wild","rich"],a:"small",e:"can fix it → 错误不大 small。"},
+  {s:"This chair is uncomfortable. It is too ____.",o:["soft","hard","new","early"],a:"hard",e:"椅子不舒服 → 太硬 hard。"},
+  {s:"She is very ____; she always helps others.",o:["kind","lazy","rude","nervous"],a:"kind",e:"always helps others → 善良 kind。"},
+  {s:"The road is ____ at night, so drive slowly.",o:["dark","cheap","light","weak"],a:"dark",e:"at night + drive slowly → dark。"},
+  {s:"This test is ____ for me. I need more practice.",o:["easy","difficult","happy","fresh"],a:"difficult",e:"need more practice → 困难 difficult。"},
+  {s:"The baby is ____ now, so please be quiet.",o:["asleep","angry","ready","wrong"],a:"asleep",e:"please be quiet → asleep。"},
+  {s:"That building is very ____; it has many floors.",o:["tall","short","thin","slow"],a:"tall",e:"many floors → 高 tall。"},
+  {s:"I prefer ____ colors like white and grey.",o:["bright","simple","noisy","late"],a:"simple",e:"white & grey → 简约 simple。"},
+  {s:"The water is too ____ to swim in today.",o:["cold","sweet","soft","safe"],a:"cold",e:"too ___ to swim → cold。"},
+  {s:"This book is ____; I can finish it in one day.",o:["short","deep","wide","empty"],a:"short",e:"finish in one day → 篇幅短 short。"},
+  {s:"Your answer is ____; please try again.",o:["wrong","right","free","open"],a:"wrong",e:"try again → wrong。"},
+  {s:"The classroom is ____ today because many students are absent.",o:["quiet","crowded","dirty","famous"],a:"quiet",e:"学生少 → 安静 quiet。"},
+  {s:"It was a ____ day, so we stayed at home.",o:["rainy","safe","early","cheap"],a:"rainy",e:"stayed at home + day → rainy。"}
+];
+
+const quiz=document.getElementById("quiz");
+
+questions.forEach((q,i)=>{
+  const d=document.createElement("div");
+  d.className="q";
+  d.innerHTML=`
+    <div class="qtitle">
+      <div class="sentence"><b>${i+1}.</b> ${q.s.replace("____","<span class='blank'>____</span>")}</div>
+      <button class="secondary" onclick="speak(${i})">🔊 Speak</button>
+    </div>
+    <div class="options" id="opt${i}">
+      ${q.o.map(o=>`
+        <label class="pill">
+          <input type="radio" name="q${i}" value="${o}" onchange="instant(${i},this)">
+          ${o}
+        </label>`).join("")}
+    </div>
+    <div class="hint" id="hint${i}"></div>
+    <details id="exp${i}">
+      <summary>Explanation</summary>
+      <div class="explain"><b>Correct:</b> <code>${q.a}</code><br>${q.e}</div>
+    </details>
+  `;
+  quiz.appendChild(d);
+});
+
+function speak(i){
+  const u=new SpeechSynthesisUtterance(questions[i].s.replace("____",questions[i].a));
+  u.lang="en-US";u.rate=0.9;
+  speechSynthesis.speak(u);
+}
+
+function instant(i,el){
+  const pills=document.querySelectorAll(`#opt${i} .pill`);
+  pills.forEach(p=>p.classList.remove("correct","wrong"));
+  const hint=document.getElementById("hint"+i);
+
+  if(el.value===questions[i].a){
+    el.parentNode.classList.add("correct");
+    hint.textContent="✓ Correct";
+    hint.className="hint ok";
+  }else{
+    el.parentNode.classList.add("wrong");
+    hint.textContent="✗ Try again";
+    hint.className="hint bad";
+  }
+}
+
+let lastExportText = "";
+let lastCSVRow = "";   // single row CSV: name,score,date
+let lastCSVFileName = "results.csv";
+
+function checkAll(){
+  const nameRaw=document.getElementById("studentName").value.trim();
+  const name = nameRaw ? nameRaw : "Student";
+
+  let score=0;
+  questions.forEach((q,i)=>{
+    const sel=document.querySelector(`input[name="q${i}"]:checked`);
+    const exp=document.getElementById("exp"+i);
+    if(sel && sel.value===q.a){
+      score++;
+      exp.open=false;
+    }else{
+      exp.open=true;
+    }
+  });
+
+  const now = new Date();
+  const dt = now.toLocaleString();
+
+  const resultLine = `${name}, your score is ${score} / ${questions.length}`;
+  document.getElementById("result").textContent = resultLine;
+
+  lastExportText =
+`Adjectives Quiz Result
+Name: ${name}
+Score: ${score}/${questions.length}
+Date: ${dt}`;
+
+  // Build CSV row (RFC4180-ish safe)
+  // We quote fields to handle commas safely.
+  const csvDate = now.toISOString(); // stable for spreadsheets
+  const csvScore = `${score}/${questions.length}`;
+  lastCSVRow = `${csvEscape(name)},${csvEscape(csvScore)},${csvEscape(csvDate)}\n`;
+
+  // file name with date
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,"0");
+  const d = String(now.getDate()).padStart(2,"0");
+  lastCSVFileName = `adjectives_results_${y}${m}${d}.csv`;
+
+  const exportBox = document.getElementById("exportBox");
+  exportBox.style.display = "block";
+  document.getElementById("exportText").value = lastExportText;
+
+  document.getElementById("copyBtn").disabled = false;
+  document.getElementById("csvBtn").disabled = false;
+}
+
+function csvEscape(value){
+  // Always quote to be safe
+  const s = String(value).replace(/"/g,'""');
+  return `"${s}"`;
+}
+
+async function copyScore(){
+  if(!lastExportText){
+    alert("Please click 'Check All' first.");
+    return;
+  }
+  try{
+    await navigator.clipboard.writeText(lastExportText);
+    showToast("✅ Copied!");
+  }catch(e){
+    const ta=document.getElementById("exportText");
+    ta.focus(); ta.select();
+    document.execCommand("copy");
+    showToast("✅ Copied!");
+  }
+}
+
+function downloadCSV(){
+  if(!lastCSVRow){
+    alert("Please click 'Check All' first.");
+    return;
+  }
+
+  // CSV header + one row
+  const header = `"name","score","date"\n`;
+  const csvContent = header + lastCSVRow;
+
+  const blob = new Blob([csvContent], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = lastCSVFileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast("✅ CSV downloaded!");
+}
+
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display="block";
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer=setTimeout(()=>t.style.display="none", 1700);
+}
+
+function resetAll(){
+  document.getElementById("studentName").value="";
+  document.querySelectorAll("input[type=radio]").forEach(r=>r.checked=false);
+  document.querySelectorAll(".pill").forEach(p=>p.classList.remove("correct","wrong"));
+  document.querySelectorAll("details").forEach(d=>d.open=false);
+  document.querySelectorAll(".hint").forEach(h=>{h.textContent=""; h.className="hint";});
+  document.getElementById("result").textContent="";
+  document.getElementById("exportBox").style.display="none";
+  document.getElementById("exportText").value="";
+  document.getElementById("copyBtn").disabled=true;
+  document.getElementById("csvBtn").disabled=true;
+
+  lastExportText="";
+  lastCSVRow="";
+  lastCSVFileName="results.csv";
+}
+</script>
+</body>
+</html>
